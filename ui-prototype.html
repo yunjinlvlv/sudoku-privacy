@@ -360,7 +360,7 @@
       <button class="navbtn is-active" data-view="auth" type="button"><span class="navbtn__dot"></span>로그인 · 회원가입<span class="navbtn__badge">확정</span></button>
       <button class="navbtn" data-view="dashboard" type="button"><span class="navbtn__dot"></span>대시보드<span class="navbtn__badge">확정</span></button>
       <button class="navbtn" data-view="network" type="button"><span class="navbtn__dot"></span>네트워크 · 수당<span class="navbtn__badge">확정</span></button>
-      <button class="navbtn" data-view="security" type="button"><span class="navbtn__dot"></span>2FA 보안<span class="navbtn__badge">확정</span></button>
+      <button class="navbtn" data-view="security" type="button"><span class="navbtn__dot"></span>마이페이지<span class="navbtn__badge">확정</span></button>
       <button class="navbtn" data-view="admin" type="button"><span class="navbtn__dot"></span>어드민(PC 전용)<span class="navbtn__badge">확정</span></button>
     </nav>
 
@@ -572,18 +572,28 @@
           </div>
         </section>
 
-        <!-- ============ SECURITY ============ -->
+        <!-- ============ SECURITY (마이페이지) ============ -->
         <section class="view" data-view="security">
           <div class="view__head">
-            <div><p class="view__title">2FA 보안 설정</p><p class="view__sub">SCR-USER-004</p></div>
+            <div><p class="view__title">마이페이지</p><p class="view__sub">SCR-USER-004</p></div>
             <span class="confirmed-chip">확정됨</span>
           </div>
-          <div class="card" style="max-width:380px;">
-            <p class="eyebrow">Google Authenticator 등록</p>
-            <div style="display:flex;justify-content:center;margin:14px 0;"><div class="qr-mock"></div></div>
-            <div class="field"><label>보안 키 (수동 입력용)</label><input data-mono readonly value="KZ4X QP2M 9VJT R7LC" /></div>
-            <div class="field"><label id="secOtpLabel">앱에 표시된 6자리 코드</label><div class="otp-group" data-otp="secOtp" aria-labelledby="secOtpLabel"></div></div>
-            <button class="btn btn--primary" type="button" onclick="toast('2FA가 활성화됐어요')">2FA 활성화</button>
+          <div class="grid-2">
+            <div class="card">
+              <p class="eyebrow">비밀번호 변경</p>
+              <div class="field"><label for="pwCurrent">현재 비밀번호</label><input id="pwCurrent" type="password" placeholder="••••••••" /></div>
+              <div class="field"><label for="pwNew">새 비밀번호</label><input id="pwNew" type="password" placeholder="대문자·숫자 포함 8자 이상" /></div>
+              <div class="field"><label for="pwNewConfirm">새 비밀번호 확인</label><input id="pwNewConfirm" type="password" placeholder="••••••••" /></div>
+              <p class="field__error" id="pwChangeError" style="display:none;"></p>
+              <button class="btn btn--primary" type="button" onclick="confirmPasswordChange()">비밀번호 변경</button>
+            </div>
+            <div class="card">
+              <p class="eyebrow">Google Authenticator 등록</p>
+              <div style="display:flex;justify-content:center;margin:14px 0;"><div class="qr-mock"></div></div>
+              <div class="field"><label>보안 키 (수동 입력용)</label><input data-mono readonly value="KZ4X QP2M 9VJT R7LC" /></div>
+              <div class="field"><label id="secOtpLabel">앱에 표시된 6자리 코드</label><div class="otp-group" data-otp="secOtp" aria-labelledby="secOtpLabel"></div></div>
+              <button class="btn btn--primary" type="button" onclick="toast('2FA가 활성화됐어요')">2FA 활성화</button>
+            </div>
           </div>
         </section>
 
@@ -628,6 +638,8 @@
                 <button class="btn admintab-btn" data-admintab="batch" type="button" onclick="switchAdminTab('batch')">배치 현황</button>
                 <button class="btn admintab-btn" data-admintab="risk" data-role-restricted type="button" onclick="switchAdminTab('risk')">위험 관리</button>
                 <button class="btn admintab-btn" data-admintab="config" data-role-restricted type="button" onclick="switchAdminTab('config')">시스템 설정</button>
+                <button class="btn admintab-btn" data-admintab="staff" data-role-restricted type="button" onclick="switchAdminTab('staff')">스태프 관리</button>
+                <button class="btn admintab-btn" data-admintab="myaccount" type="button" onclick="switchAdminTab('myaccount')">내 계정</button>
               </div>
 
               <!-- 대시보드/통계 -->
@@ -868,6 +880,79 @@
                 </div>
               </div>
 
+              <!-- 스태프 관리 -->
+              <div class="admintab" data-admintab="staff">
+                <div class="card">
+                  <div class="admin-topbar" style="margin-bottom:10px;">
+                    <p class="eyebrow" style="margin:0;">운영 스태프 계정 (admin_staff)</p>
+                    <button class="btn" style="width:auto;background:var(--accent);border-color:var(--accent);color:var(--accent-ink);" data-write-action type="button" onclick="openStaffCreateModal()">신규 관리자 등록</button>
+                  </div>
+                  <p class="field__hint" style="margin-bottom:10px;">users 테이블과 완전히 분리된 관리자 전용 계정이에요. SUPER_ADMIN만 등록·권한 변경·정지를 할 수 있어요.</p>
+                  <div class="table-scroll">
+                    <table>
+                      <thead><tr><th>이메일</th><th>권한</th><th>상태</th><th>생성일</th><th>처리</th></tr></thead>
+                      <tbody id="staffRows">
+                        <tr>
+                          <td>owner@gmail.com</td><td>SUPER_ADMIN</td><td><span class="chip chip--success">ACTIVE</span></td><td class="mono">2026-01-05</td>
+                          <td class="btn-row" style="max-width:220px;">
+                            <select data-mono style="width:auto;" data-write-action onchange="toast('권한을 ' + this.value + '(으)로 변경했어요')">
+                              <option value="SUPER_ADMIN" selected>SUPER_ADMIN</option>
+                              <option value="MANAGER">MANAGER</option>
+                              <option value="VIEWER">VIEWER</option>
+                            </select>
+                            <button class="btn btn--danger" data-write-action type="button" onclick="toggleStaffStatus(this)">정지</button>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td>ops1@gmail.com</td><td>MANAGER</td><td><span class="chip chip--success">ACTIVE</span></td><td class="mono">2026-05-20</td>
+                          <td class="btn-row" style="max-width:220px;">
+                            <select data-mono style="width:auto;" data-write-action onchange="toast('권한을 ' + this.value + '(으)로 변경했어요')">
+                              <option value="SUPER_ADMIN">SUPER_ADMIN</option>
+                              <option value="MANAGER" selected>MANAGER</option>
+                              <option value="VIEWER">VIEWER</option>
+                            </select>
+                            <button class="btn btn--danger" data-write-action type="button" onclick="toggleStaffStatus(this)">정지</button>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td>viewer1@gmail.com</td><td>VIEWER</td><td><span class="chip chip--rejected">SUSPENDED</span></td><td class="mono">2026-06-11</td>
+                          <td class="btn-row" style="max-width:220px;">
+                            <select data-mono style="width:auto;" data-write-action onchange="toast('권한을 ' + this.value + '(으)로 변경했어요')">
+                              <option value="SUPER_ADMIN">SUPER_ADMIN</option>
+                              <option value="MANAGER">MANAGER</option>
+                              <option value="VIEWER" selected>VIEWER</option>
+                            </select>
+                            <button class="btn" style="background:var(--accent);border-color:var(--accent);color:var(--accent-ink);" data-write-action type="button" onclick="toggleStaffStatus(this)">활성화</button>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 내 계정 (역할 무관 접근 가능 — 본인 보안 정보) -->
+              <div class="admintab" data-admintab="myaccount">
+                <div class="grid-2">
+                  <div class="card">
+                    <p class="eyebrow">비밀번호 변경</p>
+                    <div class="field"><label for="adminPwCurrent">현재 비밀번호</label><input id="adminPwCurrent" type="password" placeholder="••••••••" /></div>
+                    <div class="field"><label for="adminPwNew">새 비밀번호</label><input id="adminPwNew" type="password" placeholder="대문자·숫자 포함 8자 이상" /></div>
+                    <div class="field"><label for="adminPwNewConfirm">새 비밀번호 확인</label><input id="adminPwNewConfirm" type="password" placeholder="••••••••" /></div>
+                    <p class="field__error" id="adminPwChangeError" style="display:none;"></p>
+                    <button class="btn btn--primary" type="button" onclick="confirmAdminPasswordChange()">비밀번호 변경</button>
+                  </div>
+                  <div class="card">
+                    <p class="eyebrow">Google 2FA 재등록</p>
+                    <p class="field__hint" style="margin-bottom:10px;">기기 변경·OTP 분실 시 재등록하세요. 재등록 즉시 기존 비밀키는 폐기돼요.</p>
+                    <div style="display:flex;justify-content:center;margin:10px 0;"><div class="qr-mock"></div></div>
+                    <div class="field"><label>보안 키 (수동 입력용)</label><input data-mono readonly value="7QY2 M9XK 4RP1 T8VN" /></div>
+                    <div class="field"><label id="adminSecOtpLabel">앱에 표시된 6자리 코드</label><div class="otp-group" data-otp="adminSecOtp" aria-labelledby="adminSecOtpLabel"></div></div>
+                    <button class="btn btn--primary" type="button" onclick="toast('2FA를 재등록했어요')">2FA 재등록</button>
+                  </div>
+                </div>
+              </div>
+
             </div>
           </div>
         </section>
@@ -944,6 +1029,30 @@
     <div class="btn-row">
       <button class="btn" type="button" onclick="closeModal('adminRejectModalOverlay')">취소</button>
       <button class="btn btn--danger" type="button" onclick="confirmAdminReject()">거절 확정</button>
+    </div>
+  </div>
+</div>
+
+<!-- Staff create — SUPER_ADMIN only, 2FA re-verification -->
+<div class="modal-overlay" id="staffCreateModalOverlay">
+  <div class="modal">
+    <p class="eyebrow">신규 관리자 등록</p>
+    <div class="field"><label for="staffEmail">이메일</label><input id="staffEmail" placeholder="you@gmail.com" /></div>
+    <div class="field"><label for="staffInitialPw">초기 비밀번호</label><input id="staffInitialPw" type="password" placeholder="대문자·숫자 포함 8자 이상" /></div>
+    <p class="field__hint" style="margin-top:-6px;margin-bottom:12px;">최초 로그인 시 비밀번호 변경과 Google 2FA 등록이 필수예요.</p>
+    <div class="field">
+      <label for="staffRole">권한 등급</label>
+      <select id="staffRole">
+        <option value="VIEWER">VIEWER · 읽기 전용</option>
+        <option value="MANAGER">MANAGER · 운영 권한</option>
+        <option value="SUPER_ADMIN">SUPER_ADMIN · 전체 권한</option>
+      </select>
+    </div>
+    <p class="field__error" id="staffCreateError" style="display:none;">이메일과 초기 비밀번호를 입력해 주세요.</p>
+    <div class="field" style="margin-top:12px;"><label id="staffOtpLabel">본인 확인 · 관리자 2FA 코드</label><div class="otp-group" data-otp="staffOtp" aria-labelledby="staffOtpLabel"></div></div>
+    <div class="btn-row">
+      <button class="btn" type="button" onclick="closeModal('staffCreateModalOverlay')">취소</button>
+      <button class="btn btn--primary" type="button" onclick="confirmStaffCreate()">등록 확정</button>
     </div>
   </div>
 </div>
@@ -1365,6 +1474,89 @@
     if (!willSuspend) btn.style.cssText = 'background:var(--accent);border-color:var(--accent);color:var(--accent-ink);';
     else btn.style.cssText = '';
     toast(willSuspend ? '회원을 정지했어요' : '회원을 활성화했어요');
+  }
+
+  // ---------- Staff management (admin_staff) ----------
+  function openStaffCreateModal() {
+    document.getElementById('staffEmail').value = '';
+    document.getElementById('staffInitialPw').value = '';
+    document.getElementById('staffRole').value = 'VIEWER';
+    document.getElementById('staffCreateError').style.display = 'none';
+    openModal('staffCreateModal');
+  }
+
+  function confirmStaffCreate() {
+    var email = document.getElementById('staffEmail').value.trim();
+    var pw = document.getElementById('staffInitialPw').value;
+    var role = document.getElementById('staffRole').value;
+    if (!email || !pw) {
+      document.getElementById('staffCreateError').style.display = 'block';
+      return;
+    }
+    closeModal('staffCreateModalOverlay');
+
+    var tbody = document.getElementById('staffRows');
+    var tr = document.createElement('tr');
+    var roleOptions = ['SUPER_ADMIN', 'MANAGER', 'VIEWER'].map(function (r) {
+      return '<option value="' + r + '"' + (r === role ? ' selected' : '') + '>' + r + '</option>';
+    }).join('');
+    tr.innerHTML =
+      '<td>' + email + '</td>' +
+      '<td>' + role + '</td>' +
+      '<td><span class="chip chip--success">ACTIVE</span></td>' +
+      '<td class="mono">' + new Date().toISOString().slice(0, 10) + '</td>' +
+      '<td class="btn-row" style="max-width:220px;">' +
+        '<select data-mono style="width:auto;" data-write-action onchange="toast(\'권한을 \' + this.value + \'(으)로 변경했어요\')">' + roleOptions + '</select>' +
+        '<button class="btn btn--danger" data-write-action type="button" onclick="toggleStaffStatus(this)">정지</button>' +
+      '</td>';
+    tbody.appendChild(tr);
+    applyAdminRole(true);
+    toast('신규 관리자 계정을 등록했어요');
+  }
+
+  function toggleStaffStatus(btn) {
+    var row = btn.closest('tr');
+    var chip = row.querySelector('.chip');
+    var willSuspend = chip.textContent === 'ACTIVE';
+    chip.className = 'chip ' + (willSuspend ? 'chip--rejected' : 'chip--success');
+    chip.textContent = willSuspend ? 'SUSPENDED' : 'ACTIVE';
+    btn.textContent = willSuspend ? '활성화' : '정지';
+    btn.className = willSuspend ? 'btn' : 'btn btn--danger';
+    if (!willSuspend) btn.style.cssText = 'background:var(--accent);border-color:var(--accent);color:var(--accent-ink);';
+    else btn.style.cssText = '';
+    toast(willSuspend ? '관리자 계정을 정지했어요' : '관리자 계정을 활성화했어요');
+  }
+
+  // ---------- Password change (마이페이지 / 어드민 내 계정 공용 로직) ----------
+  function validatePasswordChange(curId, newId, confirmId, errId) {
+    var cur = document.getElementById(curId).value;
+    var next = document.getElementById(newId).value;
+    var confirmVal = document.getElementById(confirmId).value;
+    var err = document.getElementById(errId);
+    var msg = !cur ? '현재 비밀번호를 입력해 주세요.'
+      : next.length < 8 ? '새 비밀번호는 8자 이상이어야 해요.'
+      : next !== confirmVal ? '새 비밀번호가 일치하지 않아요.'
+      : '';
+    if (msg) {
+      err.textContent = msg;
+      err.style.display = 'block';
+      return false;
+    }
+    err.style.display = 'none';
+    document.getElementById(curId).value = '';
+    document.getElementById(newId).value = '';
+    document.getElementById(confirmId).value = '';
+    return true;
+  }
+
+  function confirmPasswordChange() {
+    if (!validatePasswordChange('pwCurrent', 'pwNew', 'pwNewConfirm', 'pwChangeError')) return;
+    toast('비밀번호를 변경했어요');
+  }
+
+  function confirmAdminPasswordChange() {
+    if (!validatePasswordChange('adminPwCurrent', 'adminPwNew', 'adminPwNewConfirm', 'adminPwChangeError')) return;
+    toast('비밀번호를 변경했어요');
   }
 
   // ---------- Reward log filter ----------
