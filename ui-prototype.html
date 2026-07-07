@@ -248,7 +248,8 @@
   .seal--silver { background: var(--rank-silver); }
   .seal--gold { background: var(--rank-gold); }
   .seal--diamond { background: var(--rank-diamond); }
-  .seal.is-selected { outline: 3px solid var(--ink); outline-offset: 3px; }
+  .seal { transition: filter .15s ease, opacity .15s ease; filter: grayscale(1); opacity: .5; }
+  .seal.is-selected { outline: 3px solid var(--ink); outline-offset: 3px; filter: none; opacity: 1; }
 
   /* ---------- Gauge ---------- */
   .gauge-track { height: 10px; border-radius: 999px; background: var(--surface-2); overflow: hidden; border: 1px solid var(--line); }
@@ -458,10 +459,15 @@
           </div>
 
           <div class="card" style="margin-top:14px;max-width:320px;">
-            <p class="eyebrow">입금 주소 (TRC-20)</p>
+            <div class="btn-row" style="margin-bottom:12px;">
+              <button class="btn authtab is-active" data-deposit-net="TRC20" type="button" onclick="switchDepositNetwork('TRC20')">TRC-20</button>
+              <button class="btn authtab" data-deposit-net="BEP20" type="button" onclick="switchDepositNetwork('BEP20')">BEP-20</button>
+            </div>
+            <p class="eyebrow" id="depositNetLabel">입금 주소 (TRC-20)</p>
             <div style="display:flex;justify-content:center;margin:10px 0;"><div class="qr-mock" id="qrMock"></div></div>
-            <p class="mono" style="font-size:12px;word-break:break-all;text-align:center;color:var(--ink-dim);">TXamPLEaddr9kQ8ZY4pL8otSzgjLj6t</p>
+            <p class="mono" id="depositAddress" style="font-size:12px;word-break:break-all;text-align:center;color:var(--ink-dim);">TXamPLEaddr9kQ8ZY4pL8otSzgjLj6t</p>
             <button class="btn" type="button" onclick="copyAddress()">주소 복사</button>
+            <p class="field__hint" style="margin-top:8px;">선택한 네트워크로 보낸 USDT만 정상 입금돼요. 다른 네트워크로 보내면 자산이 유실될 수 있어요.</p>
           </div>
         </section>
 
@@ -479,6 +485,10 @@
               <span class="mono" id="gaugeText" style="font-size:13px;">21.0% / 300%</span>
               <input type="range" id="gaugeSlider" min="0" max="100" value="21" />
             </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding-top:10px;border-top:1px solid var(--line);">
+              <span class="field__hint">다음 일일 정산까지 <span class="mono" id="roiTimerText" style="color:var(--ink);font-weight:600;">24:00:00</span></span>
+              <button class="btn" type="button" style="width:auto;padding:6px 10px;font-size:12px;" onclick="skipRoiTimer()">데모: 24H 스킵</button>
+            </div>
             <p id="expiredBanner" style="display:none;background:var(--crit-bg);color:var(--crit);padding:10px 12px;border-radius:var(--radius-s);font-size:13px;margin-top:10px;">계정이 만료되었습니다. 재투자가 필요합니다.</p>
           </div>
 
@@ -491,12 +501,54 @@
               <button class="seal seal--diamond" data-rank="DIAMOND" type="button"><span>DIAMOND</span></button>
             </div>
             <p class="field__hint" id="rankDesc" style="margin-top:10px;">BRONZE — 조건 없이 시작하는 기본 직급이에요.</p>
+            <p class="field__hint" style="margin-top:4px;">내 현재 직급만 색이 표시되고, 나머지는 흑백으로 조건만 확인할 수 있어요.</p>
             <hr class="hair" />
             <div class="grid-3">
               <div><p class="eyebrow">직속 파트너</p><p class="amount amount--sm" id="statDirect">3명</p></div>
               <div><p class="eyebrow">전체 하위 인원</p><p class="amount amount--sm" id="statTotal">7명</p></div>
               <div><p class="eyebrow">매칭 요율 (1세대·2세대)</p><p class="amount amount--sm" id="statMatch">1.0% · 0.3%</p></div>
             </div>
+          </div>
+
+          <div class="card" style="margin-bottom:14px;">
+            <p class="eyebrow">내 추천인 코드</p>
+            <div class="grid-2">
+              <div class="field" style="margin-bottom:0;">
+                <label for="myReferralCode">추천인 코드</label>
+                <div class="btn-row" style="align-items:center;">
+                  <input id="myReferralCode" data-mono readonly value="8F2KQ1LM" />
+                  <button class="btn" style="width:auto;" type="button" onclick="copyReferralCode()">복사</button>
+                </div>
+              </div>
+              <div class="field" style="margin-bottom:0;">
+                <label for="myReferralLink">초대 링크</label>
+                <div class="btn-row" style="align-items:center;">
+                  <input id="myReferralLink" data-mono readonly value="usdt-platform.example.com/register?ref=8F2KQ1LM" />
+                  <button class="btn" style="width:auto;" type="button" onclick="copyReferralLink()">복사</button>
+                </div>
+              </div>
+            </div>
+            <button class="btn btn--primary" type="button" style="margin-top:12px;" onclick="shareReferralLink()">초대 링크 보내기</button>
+          </div>
+
+          <div class="card" style="margin-bottom:14px;">
+            <p class="eyebrow">직속 하위 팀</p>
+            <div class="table-scroll">
+              <table class="table--responsive">
+                <thead><tr><th>이메일</th><th>직급</th><th>가입일</th><th>상태</th></tr></thead>
+                <tbody id="downlineTableBody">
+                  <tr><td>user0230@gmail.com</td><td>SILVER</td><td class="mono">2026-05-11</td><td><span class="chip chip--success">ACTIVE</span></td></tr>
+                  <tr><td>user0231@gmail.com</td><td>BRONZE</td><td class="mono">2026-06-02</td><td><span class="chip chip--success">ACTIVE</span></td></tr>
+                  <tr><td>user0455@gmail.com</td><td>BRONZE</td><td class="mono">2026-06-20</td><td><span class="chip chip--pending">PENDING</span></td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="rowcards" id="downlineCards">
+              <div class="rowcard"><div><strong>user0230@gmail.com</strong><div class="field__hint">SILVER · 2026-05-11</div></div><span class="chip chip--success">ACTIVE</span></div>
+              <div class="rowcard"><div><strong>user0231@gmail.com</strong><div class="field__hint">BRONZE · 2026-06-02</div></div><span class="chip chip--success">ACTIVE</span></div>
+              <div class="rowcard"><div><strong>user0455@gmail.com</strong><div class="field__hint">BRONZE · 2026-06-20</div></div><span class="chip chip--pending">PENDING</span></div>
+            </div>
+            <button class="btn" type="button" style="margin-top:10px;" onclick="openModal('memberTreeModal')">전체 계보 트리 보기</button>
           </div>
 
           <div class="card">
@@ -1053,10 +1105,43 @@
     document.getElementById('eConfirmBtn').disabled = underMin;
   }
 
+  // ---------- Deposit network (TRC-20 / BEP-20) ----------
+  var depositAddresses = {
+    TRC20: { label: '입금 주소 (TRC-20)', address: 'TXamPLEaddr9kQ8ZY4pL8otSzgjLj6t' },
+    BEP20: { label: '입금 주소 (BEP-20)', address: '0x3F2c9E1aB47dC0912fE6a5D8b1234abCDEf5678' }
+  };
+  function switchDepositNetwork(net) {
+    document.querySelectorAll('[data-deposit-net]').forEach(function (btn) {
+      btn.classList.toggle('is-active', btn.getAttribute('data-deposit-net') === net);
+    });
+    var info = depositAddresses[net];
+    document.getElementById('depositNetLabel').textContent = info.label;
+    document.getElementById('depositAddress').textContent = info.address;
+    var qr = document.getElementById('qrMock');
+    qr.innerHTML = '';
+    buildQr(qr);
+  }
+
   // ---------- Copy address ----------
   function copyAddress() {
-    try { navigator.clipboard.writeText('TXamPLEaddr9kQ8ZY4pL8otSzgjLj6t'); } catch (e) {}
+    var address = document.getElementById('depositAddress').textContent;
+    try { navigator.clipboard.writeText(address); } catch (e) {}
     toast('주소를 복사했어요');
+  }
+
+  // ---------- Referral code / invite link ----------
+  function copyReferralCode() {
+    try { navigator.clipboard.writeText(document.getElementById('myReferralCode').value); } catch (e) {}
+    toast('추천인 코드를 복사했어요');
+  }
+  function copyReferralLink() {
+    try { navigator.clipboard.writeText(document.getElementById('myReferralLink').value); } catch (e) {}
+    toast('초대 링크를 복사했어요');
+  }
+  function shareReferralLink() {
+    var link = document.getElementById('myReferralLink').value;
+    if (navigator.share) { navigator.share({ title: 'USDT Platform 초대', url: link }).catch(function () {}); }
+    else { copyReferralLink(); }
   }
 
   // ---------- QR mock generator ----------
@@ -1107,9 +1192,9 @@
   // ---------- Rank seals ----------
   var rankDescriptions = {
     BRONZE: 'BRONZE — 조건 없이 시작하는 기본 직급이에요.',
-    SILVER: 'SILVER — 원금 1,000 USDT 이상, 직속 파트너 3명 이상, 하위 조직 누적 10,000 USDT 이상.',
-    GOLD: 'GOLD — 원금 2,000 USDT 이상, 직속 SILVER 이상 3명, 하위 조직 누적 100,000 USDT 이상.',
-    DIAMOND: 'DIAMOND — 원금 5,000 USDT 이상, 직속 GOLD 이상 3명, 하위 조직 누적 500,000 USDT 이상.'
+    SILVER: 'SILVER — 원금 1,000 USDT 이상, 직속 파트너 2명 이상, 하위 조직 누적 5,000 USDT 이상.',
+    GOLD: 'GOLD — 원금 3,000 USDT 이상, 직속 SILVER 이상 2명, 하위 조직 누적 10,000 USDT 이상.',
+    DIAMOND: 'DIAMOND — 원금 5,000 USDT 이상, 직속 GOLD 이상 2명, 하위 조직 누적 50,000 USDT 이상.'
   };
   var rankStats = {
     BRONZE: { direct: 3, total: 7, m1: '1.0%', m2: '0.3%' },
@@ -1157,14 +1242,41 @@
 
   // ---------- ROI gauge ----------
   var slider = document.getElementById('gaugeSlider');
-  slider.addEventListener('input', function () {
-    var pct = parseInt(slider.value, 10);
+  function applyGauge(achievedPct) {
+    achievedPct = Math.max(0, Math.min(300, achievedPct));
+    var trackPct = achievedPct / 3;
     var fill = document.getElementById('gaugeFill');
-    fill.style.width = pct + '%';
-    fill.style.background = pct < 70 ? 'var(--accent)' : pct < 90 ? 'var(--warn)' : 'var(--crit)';
-    document.getElementById('gaugeText').textContent = (pct * 3).toFixed(1) + '% / 300%';
-    document.getElementById('expiredBanner').style.display = pct >= 100 ? 'block' : 'none';
+    fill.style.width = trackPct + '%';
+    fill.style.background = trackPct < 70 ? 'var(--accent)' : trackPct < 90 ? 'var(--warn)' : 'var(--crit)';
+    document.getElementById('gaugeText').textContent = achievedPct.toFixed(1) + '% / 300%';
+    document.getElementById('expiredBanner').style.display = achievedPct >= 300 ? 'block' : 'none';
+    slider.value = Math.round(trackPct);
+  }
+  slider.addEventListener('input', function () {
+    applyGauge(parseInt(slider.value, 10) * 3);
   });
+
+  // ---------- ROI 24시간 실시간 타이머 ----------
+  var DAILY_ROI_TICK_PCT = 1; // 일일 ROI 1% (원금 대비) → 300% 한도 게이지에 그대로 누적
+  var roiTimerTarget = Date.now() + 24 * 60 * 60 * 1000;
+  function renderRoiTimer() {
+    var remain = Math.max(0, roiTimerTarget - Date.now());
+    var h = Math.floor(remain / 3600000);
+    var m = Math.floor((remain % 3600000) / 60000);
+    var s = Math.floor((remain % 60000) / 1000);
+    var pad = function (n) { return String(n).padStart(2, '0'); };
+    document.getElementById('roiTimerText').textContent = pad(h) + ':' + pad(m) + ':' + pad(s);
+    if (remain <= 0) completeRoiTick();
+  }
+  function completeRoiTick() {
+    roiTimerTarget = Date.now() + 24 * 60 * 60 * 1000;
+    var current = parseFloat(document.getElementById('gaugeText').textContent) || 0;
+    applyGauge(current + DAILY_ROI_TICK_PCT);
+    toast('일일 수익이 정산됐어요 (+' + DAILY_ROI_TICK_PCT + '%p)');
+  }
+  function skipRoiTimer() { roiTimerTarget = Date.now(); renderRoiTimer(); }
+  setInterval(renderRoiTimer, 1000);
+  renderRoiTimer();
 
   // ---------- Admin actions ----------
   var pendingAdminRow = null;
